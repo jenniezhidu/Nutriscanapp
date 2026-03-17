@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
+import { setGuestMode } from '@/lib/guestMode';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -56,6 +57,7 @@ export default function LoginScreen() {
   };
 
   const handleGuestContinue = () => {
+    setGuestMode(true);
     router.replace('/');
   };
 

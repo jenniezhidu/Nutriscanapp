@@ -3,6 +3,7 @@ import { Stack, router, useSegments, useRootNavigationState } from 'expo-router'
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { supabase } from '@/lib/supabase';
+import { getGuestMode } from '@/lib/guestMode';
 
 export default function RootLayout() {
   useFrameworkReady();
@@ -15,8 +16,9 @@ export default function RootLayout() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       const inAuthGroup = segments[0] === 'login';
+      const isGuestMode = getGuestMode();
 
-      if (!session && !inAuthGroup) {
+      if (!session && !isGuestMode && !inAuthGroup) {
         router.replace('/login');
       } else if (session && inAuthGroup) {
         router.replace('/');
@@ -27,8 +29,9 @@ export default function RootLayout() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const inAuthGroup = segments[0] === 'login';
+      const isGuestMode = getGuestMode();
 
-      if (!session && !inAuthGroup) {
+      if (!session && !isGuestMode && !inAuthGroup) {
         router.replace('/login');
       } else if (session && inAuthGroup) {
         router.replace('/');
