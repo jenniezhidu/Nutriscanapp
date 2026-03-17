@@ -1,46 +1,42 @@
-import { useEffect, useState } from 'react';
-import { Stack, useSegments, router } from 'expo-router';
+import { useEffect } from 'react';
+import { Stack, router, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { supabase } from '@/lib/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function RootLayout() {
   useFrameworkReady();
-  const [isReady, setIsReady] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const [guestMode, setGuestMode] = useState<boolean | null>(null);
   const segments = useSegments();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
-    const initAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const guestFlag = await AsyncStorage.getItem('guestMode');
-      setIsLoggedIn(!!session);
-      setGuestMode(!!guestFlag);
-      setIsReady(true);
-    };
-    initAuth();
+    if (!navigationState?.key) return;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      const guestFlag = await AsyncStorage.getItem('guestMode');
-      setIsLoggedIn(!!session);
-      setGuestMode(!!guestFlag);
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const inAuthGroup = segments[0] === 'login';
+
+      if (!session && !inAuthGroup) {
+        router.replace('/login');
+      } else if (session && inAuthGroup) {
+        router.replace('/');
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const inAuthGroup = segments[0] === 'login';
+
+      if (!session && !inAuthGroup) {
+        router.replace('/login');
+      } else if (session && inAuthGroup) {
+        router.replace('/');
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!isReady) return;
-    const inLoginRoute = segments[0] === 'login';
-    if (!isLoggedIn && !guestMode && !inLoginRoute) {
-      router.replace('/login');
-    } else if (isLoggedIn && inLoginRoute) {
-      AsyncStorage.removeItem('guestMode');
-      router.replace('/');
-    }
-  }, [isReady, isLoggedIn, guestMode, segments]);
+  }, [segments, navigationState?.key]);
 
   return (
     <>

@@ -4,7 +4,6 @@ import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -15,11 +14,15 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     try {
+      const redirectUrl = makeRedirectUri({
+        scheme: 'nutriscan',
+        path: 'login'
+      });
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'nutriscan://login',
-          skipBrowserRedirect: true,
+          redirectTo: redirectUrl,
         },
       });
 
@@ -28,16 +31,22 @@ export default function LoginScreen() {
       if (data?.url) {
         const result = await WebBrowser.openAuthSessionAsync(
           data.url,
-          'nutriscan://login'
+          redirectUrl
         );
 
-        if (result.type === 'success' && result.url) {
-          const { data: sessionData, error: sessionError } =
-            await supabase.auth.exchangeCodeForSession(
-              new URL(result.url).searchParams.get('code') ?? ''
-            );
-          if (sessionError) throw sessionError;
-          if (sessionData.session) router.replace('/');
+        if (result.type === 'success') {
+          const url = result.url;
+          const params = new URL(url).searchParams;
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+
+          if (accessToken && refreshToken) {
+            await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            router.replace('/');
+          }
         }
       }
     } catch (error) {
@@ -46,8 +55,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleGuestContinue = async () => {
-    await AsyncStorage.setItem('guestMode', 'true');
+  const handleGuestContinue = () => {
     router.replace('/');
   };
 
