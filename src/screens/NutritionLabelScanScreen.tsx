@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, Image } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
@@ -324,6 +325,34 @@ CRITICAL EXTRACTION RULES:
     return nutritionData;
   };
 
+  const checkScanLimit = async (): Promise<boolean> => {
+    try {
+      const storedDate = await AsyncStorage.getItem('labelScanDate');
+      const storedCount = await AsyncStorage.getItem('labelScanCount');
+
+      const today = new Date().toDateString();
+
+      if (storedDate !== today) {
+        await AsyncStorage.setItem('labelScanDate', today);
+        await AsyncStorage.setItem('labelScanCount', '0');
+        return true;
+      }
+
+      const count = parseInt(storedCount || '0', 10);
+
+      if (count >= 5) {
+        Alert.alert('Daily Limit Reached', "You've used your 5 free label scans today. Come back tomorrow!");
+        return false;
+      }
+
+      await AsyncStorage.setItem('labelScanCount', (count + 1).toString());
+      return true;
+    } catch (error) {
+      console.error('Error checking scan limit:', error);
+      return true;
+    }
+  };
+
   const checkDatabaseForProduct = async (productName: string): Promise<NutritionData | null> => {
     try {
       console.log('🔍 Checking database for product:', productName);
@@ -460,6 +489,11 @@ CRITICAL EXTRACTION RULES:
       return;
     }
 
+    const canProceed = await checkScanLimit();
+    if (!canProceed) {
+      return;
+    }
+
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
@@ -479,6 +513,11 @@ CRITICAL EXTRACTION RULES:
 
   const handleChooseFromLibrary = async () => {
     if (isProcessing.current) {
+      return;
+    }
+
+    const canProceed = await checkScanLimit();
+    if (!canProceed) {
       return;
     }
 
