@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { Camera, FileText, Heart } from 'lucide-react-native';
+import { Camera, FileText, Heart, Clock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export function HomeScreen() {
@@ -14,6 +14,10 @@ export function HomeScreen() {
 
   const handleFavourites = () => {
     router.push('/favourites');
+  };
+
+  const handleHistory = () => {
+    router.push('/history');
   };
 
   return (
@@ -75,6 +79,19 @@ export function HomeScreen() {
             <View style={styles.buttonTextContainer}>
               <Text style={styles.buttonTitle}>Favourites</Text>
               <Text style={styles.buttonSubtitle}>View saved products</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleHistory}
+          >
+            <View style={styles.buttonIconContainer}>
+              <Clock size={32} color="#2d8659" strokeWidth={2} />
+            </View>
+            <View style={styles.buttonTextContainer}>
+              <Text style={styles.buttonTitle}>History</Text>
+              <Text style={styles.buttonSubtitle}>View scanned products</Text>
             </View>
           </TouchableOpacity>
         </View>
