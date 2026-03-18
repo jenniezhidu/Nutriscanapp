@@ -7,6 +7,8 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { ServingSizeInput } from '../components/ServingSizeInput';
 import { NutritionPerServing } from '../components/NutritionPerServing';
 import { NutritionPer100g } from '../components/NutritionPer100g';
+import { HealthScoreBadge } from '../components/HealthScoreBadge';
+import { calculateHealthScore } from '../utils/healthScore';
 import { supabase } from '../../lib/supabase';
 
 export function ResultScreen() {
@@ -144,19 +146,6 @@ export function ResultScreen() {
     fiber: number;
   } | null>(null);
 
-  /**
-   * Per-100g calculation (FIXED, calculated from original API data):
-   *
-   * factor = 100 / originalServingSizeGrams
-   * caloriesPer100g = caloriesPerServing * factor
-   * proteinPer100g = proteinPerServing * factor
-   * carbsPer100g = carbsPerServing * factor
-   * fatPer100g = fatPerServing * factor
-   * fiberPer100g = fiberPerServing * factor
-   *
-   * This converts the original per-serving nutrition values into per-100g values
-   * using the ORIGINAL serving size. These values NEVER change.
-   */
   const calculatePer100g = () => {
     if (!product) return null;
 
@@ -173,13 +162,6 @@ export function ResultScreen() {
 
   const per100g = calculatePer100g();
 
-  /**
-   * Per-serving calculation (UPDATES when user changes serving size):
-   *
-   * per_serving = (per_100g_value / 100) * servingSizeGrams
-   *
-   * This calculates nutrition values for the user's custom serving size.
-   */
   const calculatePerServing = () => {
     if (!per100g) return null;
 
@@ -233,10 +215,8 @@ export function ResultScreen() {
       return;
     }
 
-    // Formula: amount_of_product = (target / per100g_value) * 100
     const amountOfProduct = (target / per100gValue) * 100;
 
-    // Calculate all other values: (per100g_value * amount_of_product) / 100
     setCalculationResult({
       amountOfProduct: Math.round(amountOfProduct * 10) / 10,
       calories: Math.round(((per100gData.calories * amountOfProduct) / 100) * 10) / 10,
@@ -330,6 +310,14 @@ export function ResultScreen() {
   }
 
   if (isLabelScan && labelData.calories) {
+    const healthScore = calculateHealthScore(
+      labelPer100g.calories,
+      labelPer100g.protein,
+      labelPer100g.carbs,
+      labelPer100g.fat,
+      labelPer100g.fiber
+    );
+
     return (
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex:1}}>
         <View style={styles.header}>
@@ -354,6 +342,15 @@ export function ResultScreen() {
                 </Text>
               </View>
             )}
+
+            <View style={styles.healthScoreContainer}>
+              <HealthScoreBadge
+                grade={healthScore.grade}
+                color={healthScore.color}
+                description={healthScore.description}
+                size="large"
+              />
+            </View>
 
             <ServingSizeInput
               servingSizeGrams={labelServingSizeGrams}
@@ -409,6 +406,14 @@ export function ResultScreen() {
     );
   }
 
+  const healthScore = per100g ? calculateHealthScore(
+    per100g.calories,
+    per100g.protein,
+    per100g.carbs,
+    per100g.fat,
+    per100g.fiber
+  ) : null;
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex:1}}>
       <View style={styles.header}>
@@ -427,6 +432,17 @@ export function ResultScreen() {
         <View style={styles.content}>
           <Text style={styles.productName}>{product.name}</Text>
           <Text style={styles.barcodeText}>Barcode: {barcode}</Text>
+
+          {healthScore && (
+            <View style={styles.healthScoreContainer}>
+              <HealthScoreBadge
+                grade={healthScore.grade}
+                color={healthScore.color}
+                description={healthScore.description}
+                size="large"
+              />
+            </View>
+          )}
 
           <ServingSizeInput
             servingSizeGrams={servingSizeGrams}
@@ -502,90 +518,86 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   notFoundTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#1a1a1a',
-    textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   notFoundMessage: {
     fontSize: 16,
     color: '#666666',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 24,
     lineHeight: 24,
   },
+  barcodeText: {
+    fontSize: 14,
+    color: '#999999',
+    marginBottom: 16,
+  },
   productName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '700',
     color: '#1a1a1a',
     marginBottom: 8,
   },
-  barcodeText: {
-    fontSize: 14,
-    color: '#666666',
-    marginBottom: 16,
-  },
-  buttonContainer: {
-    marginTop: 24,
-  },
   uncertaintyBanner: {
     backgroundColor: '#fff3cd',
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 16,
     borderLeftWidth: 4,
     borderLeftColor: '#ffc107',
+    padding: 12,
+    marginBottom: 16,
+    borderRadius: 4,
   },
   uncertaintyText: {
     fontSize: 14,
     color: '#856404',
-    lineHeight: 20,
+  },
+  healthScoreContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
   },
   goalCalculatorContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
-    marginTop: 16,
+    marginTop: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
   goalCalculatorTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
     color: '#1a1a1a',
     marginBottom: 4,
   },
   goalCalculatorSubtitle: {
-    fontSize: 14,
-    color: '#666666',
+    fontSize: 12,
+    color: '#999999',
     marginBottom: 12,
   },
   nutrientButtonsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   nutrientButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     backgroundColor: '#f0f0f0',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
   },
   nutrientButtonSelected: {
-    backgroundColor: '#2D7A4F',
-    borderColor: '#2D7A4F',
+    backgroundColor: '#2d8659',
   },
   nutrientButtonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#333333',
+    color: '#666666',
   },
   nutrientButtonTextSelected: {
     color: '#ffffff',
@@ -593,47 +605,47 @@ const styles = StyleSheet.create({
   goalInputRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   goalInput: {
     flex: 1,
-    height: 44,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    fontSize: 16,
     borderWidth: 1,
     borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
   },
   calculateButton: {
-    backgroundColor: '#2D7A4F',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    backgroundColor: '#2d8659',
+    paddingHorizontal: 16,
     borderRadius: 8,
     justifyContent: 'center',
   },
   calculateButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
     color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 14,
   },
   calculationResultContainer: {
-    backgroundColor: '#f0f9ff',
+    backgroundColor: '#e8f5e9',
     borderRadius: 8,
     padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2D7A4F',
+    marginTop: 12,
   },
   calculationResultTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1a1a1a',
     marginBottom: 8,
-    lineHeight: 22,
   },
   calculationResultValues: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666666',
-    lineHeight: 20,
+    lineHeight: 18,
+  },
+  buttonContainer: {
+    marginTop: 24,
+    marginBottom: 40,
   },
 });
