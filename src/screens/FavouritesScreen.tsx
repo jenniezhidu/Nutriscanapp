@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, Image } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { Heart } from 'lucide-react-native';
@@ -20,6 +20,7 @@ interface FavouriteProduct {
     };
     servingSizeGrams: number;
     uncertain?: boolean;
+    imageUrl?: string;
   };
   created_at: string;
 }
@@ -94,12 +95,20 @@ export function FavouritesScreen() {
 
   const renderItem = ({ item }: { item: FavouriteProduct }) => {
     const calories = Math.round(item.product_data.per100g.calories);
+    const hasImage = item.product_data.imageUrl && item.product_data.imageUrl.trim() !== '';
 
     return (
       <TouchableOpacity style={styles.productCard} onPress={() => handleProductPress(item)}>
-        <View style={styles.placeholderImage}>
-          <Text style={styles.placeholderText}>📦</Text>
-        </View>
+        {hasImage ? (
+          <Image
+            source={{ uri: item.product_data.imageUrl }}
+            style={styles.productImage}
+          />
+        ) : (
+          <View style={styles.placeholderImage}>
+            <Text style={styles.placeholderText}>📦</Text>
+          </View>
+        )}
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={2}>
             {item.product_data.name}
@@ -218,6 +227,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  productImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 12,
   },
   placeholderImage: {
     width: 60,
