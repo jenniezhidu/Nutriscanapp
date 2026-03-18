@@ -1,25 +1,12 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { Camera, FileText, Heart, Clock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+const { width } = Dimensions.get('window');
+const BUTTON_WIDTH = (width - 64) / 2;
+
 export function HomeScreen() {
-  const handleScanBarcode = () => {
-    router.push('/scan-barcode');
-  };
-
-  const handleScanNutritionLabel = () => {
-    router.push('/scan-nutrition-label');
-  };
-
-  const handleFavourites = () => {
-    router.push('/favourites');
-  };
-
-  const handleHistory = () => {
-    router.push('/history');
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -39,60 +26,48 @@ export function HomeScreen() {
 
         <Text style={styles.title}>NutriScan</Text>
         <Text style={styles.description}>
-          Scan food products and instantly see nutrition per 100g
+          Scan food products and instantly see nutrition facts
         </Text>
 
-        <View style={styles.buttonContainer}>
+        <View style={styles.gridContainer}>
           <TouchableOpacity
-            style={styles.button}
-            onPress={handleScanBarcode}
+            style={styles.gridButton}
+            onPress={() => router.push('/scan-barcode')}
           >
-            <View style={styles.buttonIconContainer}>
-              <Camera size={32} color="#2d8659" strokeWidth={2} />
+            <View style={[styles.buttonIconContainer, { backgroundColor: '#e8f5e9' }]}>
+              <Camera size={28} color="#2d8659" strokeWidth={2} />
             </View>
-            <View style={styles.buttonTextContainer}>
-              <Text style={styles.buttonTitle}>Scan Barcode</Text>
-              <Text style={styles.buttonSubtitle}>Point at product barcode</Text>
-            </View>
+            <Text style={styles.buttonTitle}>Barcode</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.button}
-            onPress={handleScanNutritionLabel}
+            style={styles.gridButton}
+            onPress={() => router.push('/scan-nutrition-label')}
           >
-            <View style={styles.buttonIconContainer}>
-              <FileText size={32} color="#2d8659" strokeWidth={2} />
+            <View style={[styles.buttonIconContainer, { backgroundColor: '#e3f2fd' }]}>
+              <FileText size={28} color="#1976d2" strokeWidth={2} />
             </View>
-            <View style={styles.buttonTextContainer}>
-              <Text style={styles.buttonTitle}>Scan Nutrition Label</Text>
-              <Text style={styles.buttonSubtitle}>Capture the nutrition table</Text>
-            </View>
+            <Text style={styles.buttonTitle}>Label</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.button}
-            onPress={handleFavourites}
+            style={styles.gridButton}
+            onPress={() => router.push('/favourites')}
           >
-            <View style={styles.buttonIconContainer}>
-              <Heart size={32} color="#2d8659" strokeWidth={2} />
+            <View style={[styles.buttonIconContainer, { backgroundColor: '#fce4ec' }]}>
+              <Heart size={28} color="#d81b60" strokeWidth={2} />
             </View>
-            <View style={styles.buttonTextContainer}>
-              <Text style={styles.buttonTitle}>Favourites</Text>
-              <Text style={styles.buttonSubtitle}>View saved products</Text>
-            </View>
+            <Text style={styles.buttonTitle}>Favourites</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.button}
-            onPress={handleHistory}
+            style={styles.gridButton}
+            onPress={() => router.push('/history')}
           >
-            <View style={styles.buttonIconContainer}>
-              <Clock size={32} color="#2d8659" strokeWidth={2} />
+            <View style={[styles.buttonIconContainer, { backgroundColor: '#fff3e0' }]}>
+              <Clock size={28} color="#f57c00" strokeWidth={2} />
             </View>
-            <View style={styles.buttonTextContainer}>
-              <Text style={styles.buttonTitle}>History</Text>
-              <Text style={styles.buttonSubtitle}>View scanned products</Text>
-            </View>
+            <Text style={styles.buttonTitle}>History</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -105,7 +80,7 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f8f9fa',
   },
   content: {
     flex: 1,
@@ -114,126 +89,116 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   iconContainer: {
-    marginBottom: 32,
+    marginBottom: 20,
     shadowColor: '#2d8659',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 5,
   },
   appIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 32,
+    width: 100,
+    height: 100,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scanFrame: {
-    width: 50,
-    height: 50,
+    width: 40,
+    height: 40,
     position: 'relative',
   },
   cornerTopLeft: {
     position: 'absolute',
     top: 0,
     left: 0,
-    width: 16,
-    height: 16,
+    width: 12,
+    height: 12,
     borderTopWidth: 3,
     borderLeftWidth: 3,
     borderColor: '#ffffff',
-    borderTopLeftRadius: 4,
   },
   cornerTopRight: {
     position: 'absolute',
     top: 0,
     right: 0,
-    width: 16,
-    height: 16,
+    width: 12,
+    height: 12,
     borderTopWidth: 3,
     borderRightWidth: 3,
     borderColor: '#ffffff',
-    borderTopRightRadius: 4,
   },
   cornerBottomLeft: {
     position: 'absolute',
     bottom: 0,
     left: 0,
-    width: 16,
-    height: 16,
+    width: 12,
+    height: 12,
     borderBottomWidth: 3,
     borderLeftWidth: 3,
     borderColor: '#ffffff',
-    borderBottomLeftRadius: 4,
   },
   cornerBottomRight: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 16,
-    height: 16,
+    width: 12,
+    height: 12,
     borderBottomWidth: 3,
     borderRightWidth: 3,
     borderColor: '#ffffff',
-    borderBottomRightRadius: 4,
   },
   title: {
-    fontSize: 48,
-    fontWeight: '700',
+    fontSize: 36,
+    fontWeight: '800',
     color: '#1a1a1a',
-    marginBottom: 16,
-    letterSpacing: -1,
+    marginBottom: 8,
+    letterSpacing: -0.5,
   },
   description: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#666666',
     textAlign: 'center',
-    lineHeight: 24,
-    maxWidth: 320,
-    marginBottom: 48,
+    marginBottom: 32,
+    paddingHorizontal: 20,
   },
-  buttonContainer: {
-    width: '100%',
-    gap: 16,
-  },
-  button: {
+  gridContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 16,
+    width: '100%',
   },
-  buttonIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: '#e8f5e9',
+  gridButton: {
+    width: BUTTON_WIDTH,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
   },
-  buttonTextContainer: {
-    flex: 1,
+  buttonIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   buttonTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1a1a1a',
-    marginBottom: 4,
-  },
-  buttonSubtitle: {
-    fontSize: 14,
-    color: '#666666',
   },
   footer: {
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: 13,
     color: '#999999',
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
 });
