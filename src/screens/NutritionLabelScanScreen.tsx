@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -93,7 +93,7 @@ export function NutritionLabelScanScreen() {
               ],
             },
           ],
-        }),
+        } ),
       }
     );
 
@@ -137,7 +137,7 @@ export function NutritionLabelScanScreen() {
         messages: [
           {
             role: 'user',
-            content: `Extract nutrition facts from this label text. Return ONLY a JSON object with numeric values (no units): { product_name: string, serving_g: number, calories: number, protein_g: number, carbs_g: number, fat_g: number, fiber_g: number or null }
+            content: `Extract nutrition facts from this label text. Return ONLY a JSON object with numeric values (no units ): { product_name: string, serving_g: number, calories: number, protein_g: number, carbs_g: number, fat_g: number, fiber_g: number or null }
 
 CRITICAL EXTRACTION RULES:
 1. Extract values exactly as shown PER SERVING (not per 100g)
@@ -147,29 +147,9 @@ CRITICAL EXTRACTION RULES:
    - ONLY read the calories value under "Amount per serving" section
    - This is the LARGE BOLD number directly under "Amount per serving"
    - IGNORE any other calorie numbers on the label (per 100g, daily value %, etc)
-   - Double-check: calories per serving should ALWAYS be less than 1000 kcal for normal foods
-   - If you see a value over 1000, you are reading the wrong number (likely per 100g)
-5. Apply sanity checks BEFORE returning:
-   - protein_g must be ≤ serving_g
-   - carbs_g must be ≤ serving_g
-   - fat_g must be ≤ serving_g
-   - fiber_g must be ≤ serving_g
-   - Sum of protein_g + carbs_g + fat_g should be ≤ serving_g
-6. If OCR creates impossible values (e.g., "1.8g" vs "18g" serving), choose the interpretation that produces realistic nutrition ratios
-7. Common OCR errors to watch for:
-   - Missing decimal points (18 read as 1.8)
-   - Missing digits (110 read as 10)
-   - Misread zeros (100 read as 10 or 1000)
-8. If any value is missing or unclear, use 0 as default
-9. If the label has multiple columns (e.g. "As Packaged" and "As Prepared"), always use the "As Packaged" column
-10. If serving size contains multiple formats (e.g. "1/2 tsp (1.8g) makes 2 Tbsp"), extract only the gram value in parentheses
-11. If no gram value is found, convert common units: 1 tsp = 5g, 1 tbsp = 15g, 1 cup = 240g, 1 oz = 28.35g
-
-Text from nutrition label:
-${extractedText}`,
+   - Double-check: calories per serving should ALWAYS be less than 1000 kcal for normal foods`,
           },
         ],
-        max_tokens: 300,
       }),
     });
 
@@ -181,23 +161,13 @@ ${extractedText}`,
     const data = await response.json();
     const content = data.choices[0]?.message?.content;
 
-    console.log('📥 GPT-3.5-turbo parsed response:');
-    console.log('='.repeat(50));
-    console.log(content);
-    console.log('='.repeat(50));
-
     if (!content) {
       throw new Error('No response from OpenAI');
     }
 
-    let cleanedContent = content.trim();
-    cleanedContent = cleanedContent.replace(/```json\n?/g, '');
-    cleanedContent = cleanedContent.replace(/```\n?/g, '');
-    cleanedContent = cleanedContent.trim();
-
-    const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error(`Could not extract JSON from response. Raw response: ${content}`);
+      throw new Error('No JSON found in OpenAI response');
     }
 
     let nutritionData: NutritionData;
@@ -243,7 +213,7 @@ ${extractedText}`,
             content: [
               {
                 type: 'text',
-                text: `Extract nutrition facts from this label image. Return ONLY a JSON object with numeric values (no units): { product_name: string, serving_g: number, calories: number, protein_g: number, carbs_g: number, fat_g: number, fiber_g: number or null }
+                text: `Extract nutrition facts from this label image. Return ONLY a JSON object with numeric values (no units ): { product_name: string, serving_g: number, calories: number, protein_g: number, carbs_g: number, fat_g: number, fiber_g: number or null }
 
 CRITICAL EXTRACTION RULES:
 1. Extract values exactly as shown PER SERVING (not per 100g)
@@ -285,11 +255,6 @@ CRITICAL EXTRACTION RULES:
     const data = await response.json();
     const content = data.choices[0]?.message?.content;
 
-    console.log('📥 GPT-4o vision response:');
-    console.log('='.repeat(50));
-    console.log(content);
-    console.log('='.repeat(50));
-
     if (!content) {
       throw new Error('No response from OpenAI');
     }
@@ -301,51 +266,37 @@ CRITICAL EXTRACTION RULES:
 
     const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error(`Could not extract JSON from response. Raw response: ${content}`);
+      throw new Error('No JSON found in OpenAI response');
     }
 
-    let nutritionData: NutritionData;
-    try {
-      nutritionData = JSON.parse(jsonMatch[0]) as NutritionData;
-    } catch (parseError: any) {
-      throw new Error(`Failed to parse JSON: ${parseError.message}. Content: ${jsonMatch[0]}`);
-    }
-
-    // Apply defaults for missing values
-    nutritionData = {
-      product_name: nutritionData.product_name || 'Unknown Product',
-      serving_g: nutritionData.serving_g || 100,
-      calories: nutritionData.calories || 0,
-      protein_g: nutritionData.protein_g || 0,
-      carbs_g: nutritionData.carbs_g || 0,
-      fat_g: nutritionData.fat_g || 0,
-      fiber_g: nutritionData.fiber_g ?? null,
-    };
-
-    return nutritionData;
+    return JSON.parse(jsonMatch[0]) as NutritionData;
   };
 
   const checkScanLimit = async (): Promise<boolean> => {
     try {
-      const storedDate = await AsyncStorage.getItem('labelScanDate');
-      const storedCount = await AsyncStorage.getItem('labelScanCount');
+      const today = new Date().toISOString().split('T')[0];
+      const scansJson = await AsyncStorage.getItem('daily_scans');
+      const scans = scansJson ? JSON.parse(scansJson) : { date: today, count: 0 };
 
-      const today = new Date().toDateString();
-
-      if (storedDate !== today) {
-        await AsyncStorage.setItem('labelScanDate', today);
-        await AsyncStorage.setItem('labelScanCount', '0');
-        return true;
+      if (scans.date !== today) {
+        scans.date = today;
+        scans.count = 0;
       }
 
-      const count = parseInt(storedCount || '0', 10);
-
-      if (count >= 5) {
-        Alert.alert('Daily Limit Reached', "You've used your 5 free label scans today. Come back tomorrow!");
+      if (scans.count >= 5) {
+        Alert.alert(
+          'Daily Limit Reached',
+          'You have used your 5 free label scans for today. Upgrade to Premium for unlimited scans!',
+          [
+            { text: 'OK' },
+            { text: 'Upgrade', onPress: () => console.log('Upgrade pressed') }
+          ]
+        );
         return false;
       }
 
-      await AsyncStorage.setItem('labelScanCount', (count + 1).toString());
+      scans.count += 1;
+      await AsyncStorage.setItem('daily_scans', JSON.stringify(scans));
       return true;
     } catch (error) {
       console.error('Error checking scan limit:', error);
@@ -449,6 +400,7 @@ CRITICAL EXTRACTION RULES:
         pathname: '/result',
         params: {
           isLabelScan: 'true',
+          product_name: nutritionData.product_name,
           servingSize: nutritionData.serving_g.toString(),
           calories: nutritionData.calories.toString(),
           protein: nutritionData.protein_g.toString(),
@@ -457,14 +409,8 @@ CRITICAL EXTRACTION RULES:
           fiber: (nutritionData.fiber_g || 0).toString(),
         },
       });
-
-      console.log('✅ Navigation complete');
     } catch (error: any) {
-      console.error('❌ ERROR in nutrition label scan:');
-      console.error('Error message:', error.message);
-      console.error('Full error:', error);
-
-      // Allow user to proceed with manual entry
+      console.error('❌ Unexpected error during processing:', error);
       router.push({
         pathname: '/result',
         params: {
@@ -569,11 +515,11 @@ CRITICAL EXTRACTION RULES:
           <Camera size={80} color="#000000" strokeWidth={1.5} />
           <Text style={styles.permissionTitle}>Allow Camera Access</Text>
           <Text style={styles.permissionSubtitle}>
-            NutriScan uses your camera to scan nutrition labels
+            NutriScan needs camera access to scan nutrition labels.
           </Text>
         </View>
-        <TouchableOpacity onPress={requestPermission} style={styles.allowButton}>
-          <Text style={styles.allowButtonText}>Allow</Text>
+        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+          <Text style={styles.permissionButtonText}>Grant Permission</Text>
         </TouchableOpacity>
       </View>
     );
@@ -598,9 +544,16 @@ CRITICAL EXTRACTION RULES:
               onPress={handleChooseFromLibrary}
               disabled={isAnalyzing}
             >
-              <View style={styles.libraryPlaceholder}>
-                <Text style={styles.libraryPlaceholderIcon}>🏔</Text>
-              </View>
+              {lastPhoto ? (
+                <Image
+                  source={{ uri: lastPhoto }}
+                  style={styles.libraryThumbnail}
+                />
+              ) : (
+                <View style={styles.libraryPlaceholder}>
+                  <Text style={styles.libraryPlaceholderIcon}>🏔</Text>
+                </View>
+              )}
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -697,79 +650,69 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: '#ffffff',
   },
   shutterButtonDisabled: {
     opacity: 0.5,
   },
   shutterButtonInner: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
     backgroundColor: '#ffffff',
   },
   libraryButtonSpacer: {
     width: 50,
   },
   analyzingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   analyzingBox: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 32,
-    paddingVertical: 24,
-    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 30,
+    borderRadius: 20,
     alignItems: 'center',
   },
   analyzingText: {
-    marginTop: 16,
-    fontSize: 16,
     color: '#ffffff',
-    fontWeight: '500',
+    marginTop: 20,
+    fontSize: 18,
+    fontWeight: '600',
   },
   permissionContainer: {
     flex: 1,
     backgroundColor: '#ffffff',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-  },
-  permissionContent: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    maxWidth: 400,
+    padding: 20,
+  },
+  permissionContent: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
   permissionTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#000000',
-    marginTop: 24,
-    marginBottom: 12,
-    textAlign: 'center',
+    fontSize: 24,
+    fontWeight: '700',
+    marginTop: 20,
+    marginBottom: 10,
   },
   permissionSubtitle: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#666666',
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
   },
-  allowButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 32,
+  permissionButton: {
+    backgroundColor: '#2d8659',
+    paddingHorizontal: 30,
+    paddingVertical: 15,
+    borderRadius: 12,
   },
-  allowButtonText: {
-    fontSize: 17,
-    color: '#007AFF',
-    fontWeight: '400',
+  permissionButtonText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
