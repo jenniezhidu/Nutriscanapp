@@ -60,6 +60,7 @@ export default function RootLayout() {
         <Stack.Screen name="scan-nutrition-label" />
         <Stack.Screen name="result" />
         <Stack.Screen name="favourites" />
+        <Stack.Screen name="history" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
