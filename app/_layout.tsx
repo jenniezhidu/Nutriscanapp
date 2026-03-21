@@ -3,10 +3,13 @@ import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { initRevenueCat } from '@/lib/revenuecat';
 
 export default function RootLayout() {
   useFrameworkReady();
   useEffect(() => {
+    initRevenueCat();
+
     const checkOnboarding = async () => {
       const seen = await AsyncStorage.getItem('onboardingSeen');
       if (seen !== 'true') router.replace('/onboarding');
